@@ -1,10 +1,14 @@
 import os
+from pathlib import Path
 from flask import Flask
 from flask import render_template,g, request, redirect
 from flask_login import UserMixin,LoginManager,login_user,logout_user,login_required
 import sqlite3
 from werkzeug.security import generate_password_hash,check_password_hash
+
+from models import db
 DATABASE = 'flaskmemo.db'
+
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
 login_manager = LoginManager()
@@ -13,6 +17,31 @@ login_manager.init_app(app)
 class User(UserMixin):
     def __init__(self, userid):
         self.id = userid
+
+#アプリ作成
+def create_app(use_old_model=False):
+    app = Flask(__name__)
+    # ログイン関連
+    login_manager = LoginManager()
+    login_manager.init_app(app)
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    database_path = Path(app.instance_path) / DATABASE
+    # DBを登録
+    if(use_old_model):
+        app.secret_key = os.urandom(24)
+    else:
+        
+        app.config.from_mapping(
+            SECRET_KEY=os.urandom(24),
+            SQLALCHEMY_DATABASE_URI=f"sqlite:///{database_path}",
+            SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        )
+        db.init_app(app)
+
+        with app.app_context():
+            db.create_all()
+    return app
+
 
 # ログイン
 @login_manager.user_loader
@@ -120,9 +149,8 @@ def delete(id):
     return render_template("delete.html", post=post)
 
 if __name__ == "__main__":
-    app.run(debug=True)
-
-#database
+    create_app(use_old_model=True)
+# database
 def connect_db():
     rv = sqlite3.connect(DATABASE)
     rv.row_factory = sqlite3.Row
