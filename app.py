@@ -1,162 +1,198 @@
 import os
 from pathlib import Path
-from flask import Flask
-from flask import render_template,g, request, redirect
-from flask_login import UserMixin,LoginManager,login_user,logout_user,login_required
-import sqlite3
-from werkzeug.security import generate_password_hash,check_password_hash
+
+from flask import Flask, render_template, request, redirect
+from flask_login import (
+    UserMixin,
+    LoginManager,
+    login_user,
+    logout_user,
+    login_required,
+)
+from sqlalchemy import text
+from werkzeug.security import generate_password_hash, check_password_hash
 
 from models import db
-DATABASE = 'flaskmemo.db'
 
-app = Flask(__name__)
-app.secret_key = os.urandom(24)
+DATABASE = "flaskmemo.db"
 login_manager = LoginManager()
-login_manager.init_app(app)
+
 
 class User(UserMixin):
     def __init__(self, userid):
         self.id = userid
 
-#アプリ作成
-def create_app(use_old_model=False):
-    app = Flask(__name__)
-    # ログイン関連
-    login_manager = LoginManager()
-    login_manager.init_app(app)
-    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
-    database_path = Path(app.instance_path) / DATABASE
-    # DBを登録
-    if(use_old_model):
-        app.secret_key = os.urandom(24)
-    else:
-        
-        app.config.from_mapping(
-            SECRET_KEY=os.urandom(24),
-            SQLALCHEMY_DATABASE_URI=f"sqlite:///{database_path}",
-            SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        )
-        db.init_app(app)
 
-        with app.app_context():
-            db.create_all()
-    return app
-
-
-# ログイン
 @login_manager.user_loader
 def load_user(userid):
     return User(userid)
 
+
 @login_manager.unauthorized_handler
 def unauthorized():
     return redirect("/login")
-@app.route("/logout",methods=['GET'])
-def logout():
-    logout_user()
-    return redirect("/")
 
-@app.route("/signup",methods=['GET','POST'])
-def signup():
-    error_message = ""
-    if request.method == 'POST':
-        userid = request.form.get('userid')
-        password = request.form.get('password')
-        pass_hash = generate_password_hash(password)
 
-        db = get_db()
-        user_check =db.execute("select userid from user where userid = ?",
-                               (userid,)).fetchall()
-        if not user_check:
-            db.execute(
-                "insert into user"
-                "(userid,password)"
-                " values (?,?)",
-                [userid,pass_hash]
-            )
-            db.commit()
-            return redirect("/login")
-        else:
+# アプリ作成
+def create_app(use_old_model=False):
+    app = Flask(__name__)
+
+    Path(app.instance_path).mkdir(parents=True, exist_ok=True)
+    database_path = Path(app.instance_path) / DATABASE
+
+    app.config.from_mapping(
+        SECRET_KEY=os.urandom(24),
+        SQLALCHEMY_DATABASE_URI=f"sqlite:///{database_path}",
+        SQLALCHEMY_TRACK_MODIFICATIONS=False,
+    )
+
+    db.init_app(app)
+    login_manager.init_app(app)
+
+    with app.app_context():
+        db.create_all()
+
+    @app.route("/logout", methods=["GET"])
+    def logout():
+        logout_user()
+        return redirect("/")
+
+    # ユーザー登録
+    @app.route("/signup", methods=["GET", "POST"])
+    def signup():
+        error_message = ""
+
+        if request.method == "POST":
+            userid = request.form.get("userid")
+            password = request.form.get("password")
+            pass_hash = generate_password_hash(password)
+
+            user_check = db.session.execute(
+                text("SELECT userid FROM user WHERE userid = :userid"),
+                {"userid": userid},
+            ).first()
+
+            if user_check is None:
+                db.session.execute(
+                    text(
+                        "INSERT INTO user "
+                        "(userid, password) "
+                        "VALUES (:userid, :password)"
+                    ),
+                    {"userid": userid, "password": pass_hash},
+                )
+                db.session.commit()
+                return redirect("/login")
+
             error_message = "入力されたユーザーIDはすでに利用されています"
-    return render_template("signup.html",error_message=error_message)
-@app.route("/login",methods=['GET','POST'])
-def login():
-    error_message = ""
-    userid = ""
 
-    if request.method == 'POST':
-        userid = request.form.get('userid')
-        password = request.form.get('password')
-        # ログインチェック
-        user_data = get_db().execute("select password from user where userid = ?",
-                                     [userid,]).fetchone()
-        if user_data is not None:
-            if check_password_hash(user_data[0],password):
+        return render_template("signup.html", error_message=error_message)
+
+    @app.route("/login", methods=["GET", "POST"])
+    def login():
+        error_message = ""
+        userid = ""
+
+        if request.method == "POST":
+            userid = request.form.get("userid")
+            password = request.form.get("password")
+
+            # ログインチェック
+            pass_hash = db.session.execute(
+                text("SELECT password FROM user WHERE userid = :userid"),
+                {"userid": userid},
+            ).scalar_one_or_none()
+
+            if pass_hash is not None and check_password_hash(pass_hash, password):
                 user = User(userid)
                 login_user(user)
                 return redirect("/")
-        error_message = "入力されたIDもしくはパスワードは誤っています"
-    return render_template("login.html",userid=userid,error_message=error_message)
-@app.route("/")
-@login_required
-def top():
-    memo_list = get_db().execute("select id,title,body from memo").fetchall()
-    return render_template("index.html",memo_list=memo_list)
 
-@app.route("/regist",methods=['GET','POST'])
-@login_required
-def regist():
-    if request.method == 'POST':
-        # 画面からの登録情報の取得
-        title = request.form.get('title')
-        body = request.form.get('body')
-        db = get_db()
-        db.execute("insert into memo (title,body) values (?,?)",[title,body])
-        db.commit()
-        return redirect("/")
-    return render_template("regist.html")
+            error_message = "入力されたIDもしくはパスワードは誤っています"
 
-@app.route("/<id>/edit",methods=['GET','POST'])
-@login_required
-def edit(id):
-    if request.method == 'POST':
-        title = request.form.get('title')
-        body = request.form.get('body')
-        db = get_db()
-        db.execute("update memo set title = ?,body = ? where id = ?",[title,body,id])
-        db.commit()
-        return redirect("/")
+        return render_template("login.html", userid=userid, error_message=error_message)
 
-    post = get_db().execute(
-        "select id,title,body "
-        "from memo where id = ?",
-        (id,)).fetchone()
-    return render_template("edit.html",post=post)
+    @app.route("/")
+    @login_required
+    def top():
+        memo_list = (
+            db.session.execute(text("SELECT id, title, body FROM memo"))
+            .mappings()
+            .all()
+        )
+        return render_template("index.html", memo_list=memo_list)
 
-@app.route("/<id>/delete",methods=['GET','POST'])
-@login_required
-def delete(id):
-    if request.method == 'POST':
+    @app.route("/regist", methods=["GET", "POST"])
+    @login_required
+    def regist():
+        if request.method == "POST":
+            # 画面からの登録情報の取得
+            title = request.form.get("title")
+            body = request.form.get("body")
 
-        db = get_db()
-        db.execute("delete from memo where id = ?", (id,))
-        db.commit()
-        return redirect("/")
-    post = get_db().execute(
-        "select id,title,body "
-        "from memo where id = ?",
-        (id,)).fetchone()
-    return render_template("delete.html", post=post)
+            db.session.execute(
+                text("INSERT INTO memo (title, body) VALUES (:title, :body)"),
+                {"title": title, "body": body},
+            )
+            db.session.commit()
+            return redirect("/")
+
+        return render_template("regist.html")
+
+    @app.route("/<int:id>/edit", methods=["GET", "POST"])
+    @login_required
+    def edit(id):
+        if request.method == "POST":
+            title = request.form.get("title")
+            body = request.form.get("body")
+
+            db.session.execute(
+                text(
+                    "UPDATE memo " "SET title = :title, body = :body " "WHERE id = :id"
+                ),
+                {"title": title, "body": body, "id": id},
+            )
+            db.session.commit()
+            return redirect("/")
+
+        post = (
+            db.session.execute(
+                text("SELECT id, title, body FROM memo WHERE id = :id"),
+                {"id": id},
+            )
+            .mappings()
+            .first()
+        )
+
+        return render_template("edit.html", post=post)
+
+    @app.route("/<int:id>/delete", methods=["GET", "POST"])
+    @login_required
+    def delete(id):
+        if request.method == "POST":
+            db.session.execute(
+                text("DELETE FROM memo WHERE id = :id"),
+                {"id": id},
+            )
+            db.session.commit()
+            return redirect("/")
+
+        post = (
+            db.session.execute(
+                text("SELECT id, title, body FROM memo WHERE id = :id"),
+                {"id": id},
+            )
+            .mappings()
+            .first()
+        )
+
+        return render_template("delete.html", post=post)
+
+    return app
+
+
+app = create_app()
+
 
 if __name__ == "__main__":
-    create_app(use_old_model=True)
-# database
-def connect_db():
-    rv = sqlite3.connect(DATABASE)
-    rv.row_factory = sqlite3.Row
-    return rv
-
-def get_db():
-    if not hasattr(g, 'sqlite_db'):
-        g.sqlite_db = connect_db()
-    return g.sqlite_db
+    app.run(debug=True)
