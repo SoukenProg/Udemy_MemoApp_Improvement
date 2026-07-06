@@ -1,32 +1,31 @@
-{%  extends "base.html" %}
-{%  block content %}
-    <h1>メモアプリ</h1>
-        <a href="/regist" role="button">新規登録</a>
+{% extends "base.html" %}
+{% block content %}
+<h1>メモアプリ</h1>
+<a href="/regist" role="button">新規登録</a>
 
-        <a href="/logout" role="button">ログアウト</a>
-        {%  if memo_list == [] %}
-            <p>メモは登録されていません。</p>
-        {%  else %}
-            <table border="1">
-            <tr>
-                <th>タイトル</th>
-                <th>メモ</th>
-                <th></th>
-                <th></th>
+<a href="/logout" role="button">ログアウト</a>
+{% if memo_list == [] %}
+<p>メモは登録されていません。</p>
+{% else %}
+<table class="table table-striped-columns">
+    <tr>
+        <th>タイトル</th>
+        <th>メモ</th>
+        <th colspan="2">操作</th>
 
-            </tr>
-            {% for memo in memo_list %}
-                <tr>
-                    <td>{{memo.title}}</td>
-                    <td>{{ memo.body }}</td>
-                    <td>
-                        <a href="/{{ memo.id }}/edit" role="button">編集</a>
+    </tr>
+    {% for memo in memo_list %}
+    <tr>
+        <td>{{memo.title}}</td>
+        <td>{{ memo.body }}</td>
+        <td>
+            <a href="/{{ memo.id }}/edit" role="button">編集</a>
 
-                    <td>
-                        <a href="/{{ memo.id }}/delete" role="button">削除</a>
-                    </td>
-                </tr>
-            {% endfor %}
-            </table>
-        {% endif %}
+        <td>
+            <a href="/{{ memo.id }}/delete" role="button">削除</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
 {% endblock %}
