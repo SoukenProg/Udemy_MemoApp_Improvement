@@ -17,6 +17,8 @@ class memo(db.Model):
     title = db.Column(db.Text,nullable=False)
     body = db.Column(db.Text, nullable=False)
     createduser = db.Column(db.Integer, db.ForeignKey("user.unum"), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.now, onupdate=datetime.now, nullable=False)
 
 class user(db.Model):
     __tablename__ = "user"

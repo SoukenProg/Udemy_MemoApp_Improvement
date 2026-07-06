@@ -13,7 +13,7 @@ from flask_login import (
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from models import db
+from models import db, memo,user
 
 DATABASE = "flaskmemo.db"
 login_manager = LoginManager()
@@ -42,7 +42,7 @@ def create_app():
     database_path = Path(app.instance_path) / DATABASE
 
     app.config.from_mapping(
-        SECRET_KEY=os.urandom(24),
+        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-secret-key"),
         SQLALCHEMY_DATABASE_URI=f"sqlite:///{database_path}",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
     )
@@ -116,17 +116,14 @@ def create_app():
     @app.route("/")
     @login_required
     def top():
-        # 現在ログインしているユーザーIDとunumを取得
         userid = current_user.id
-        unum = db.session.execute(text("SELECT unum FROM user WHERE userid = :userid")
-                                  ,{"userid":userid}).scalar_one_or_none()
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"),
+            {"userid": userid}
+        ).scalar_one_or_none()
 
-        memo_list = (
-            db.session.execute(text("SELECT id, title, body FROM memo "
-                                    "where createduser=:userid"),{"userid":unum})
-            .mappings()
-            .all()
-        )
+        memo_list = memo.query.filter_by(createduser=unum).all()
+
         return render_template("index.html", memo_list=memo_list)
 
     @app.route("/regist", methods=["GET", "POST"])
@@ -134,20 +131,24 @@ def create_app():
     def regist():
         # 現在ログインしているユーザーIDとunumを取得
         userid = current_user.id
-        unum = db.session.execute(text("SELECT unum FROM user WHERE userid = :userid")
-                                  ,{"userid":userid}).scalar_one_or_none()
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"),
+            {"userid": userid}
+        ).scalar_one_or_none()
+
         if request.method == "POST":
-            # 画面からの登録情報の取得
             title = request.form.get("title")
             body = request.form.get("body")
 
-            db.session.execute(
-                text(
-                    "INSERT INTO memo (title, body,createduser) VALUES (:title, :body,:createduser)"
-                ),
-                {"title": title, "body": body,"createduser":unum},
+            new_memo = memo(
+                title=title,
+                body=body,
+                createduser=unum
             )
+
+            db.session.add(new_memo)
             db.session.commit()
+
             return redirect("/")
 
         return render_template("regist.html")
@@ -155,50 +156,44 @@ def create_app():
     @app.route("/<int:id>/edit", methods=["GET", "POST"])
     @login_required
     def edit(id):
-        if request.method == "POST":
-            title = request.form.get("title")
-            body = request.form.get("body")
+        userid = current_user.id
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"),
+            {"userid": userid}
+        ).scalar_one_or_none()
 
-            db.session.execute(
-                text(
-                    "UPDATE memo "
-                    "SET title = :title, body = :body " "WHERE id = :id"
-                ),
-                {"title": title, "body": body, "id": id},
-            )
+        post = memo.query.filter_by(id=id, createduser=unum).first()
+
+        if post is None:
+            return redirect("/")
+
+        if request.method == "POST":
+            post.title = request.form.get("title")
+            post.body = request.form.get("body")
+
             db.session.commit()
             return redirect("/")
 
-        post = (
-            db.session.execute(
-                text("SELECT id, title, body FROM memo WHERE id = :id"),
-                {"id": id},
-            )
-            .mappings()
-            .first()
-        )
+        return render_template("edit.html", post=post)  
 
-        return render_template("edit.html", post=post)
 
     @app.route("/<int:id>/delete", methods=["GET", "POST"])
     @login_required
     def delete(id):
-        if request.method == "POST":
-            db.session.execute(
-                text("DELETE FROM memo WHERE id = :id"),
-                {"id": id},
-            )
-            db.session.commit()
+        userid = current_user.id
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
+        ).scalar_one_or_none()
+
+        post = memo.query.filter_by(id=id, createduser=unum).first()
+
+        if post is None:
             return redirect("/")
 
-        post = (
-            db.session.execute(
-                text("SELECT id, title, body FROM memo WHERE id = :id"),
-                {"id": id},
-            )
-            .mappings()
-            .first()
-        )
+        if request.method == "POST":
+            db.session.delete(post)
+            db.session.commit()
+            return redirect("/")
 
         return render_template("delete.html", post=post)
 
