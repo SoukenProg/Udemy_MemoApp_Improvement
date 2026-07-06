@@ -5,6 +5,7 @@ from flask import Flask, render_template, request, redirect
 from flask_login import (
     UserMixin,
     LoginManager,
+    current_user,
     login_user,
     logout_user,
     login_required,
@@ -34,7 +35,7 @@ def unauthorized():
 
 
 # アプリ作成
-def create_app(use_old_model=False):
+def create_app():
     app = Flask(__name__)
 
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
@@ -116,7 +117,8 @@ def create_app(use_old_model=False):
     @login_required
     def top():
         memo_list = (
-            db.session.execute(text("SELECT id, title, body FROM memo"))
+            db.session.execute(text("SELECT id, title, body FROM memo "
+                                    "where createduser=:userid"),{"userid":current_user.id})
             .mappings()
             .all()
         )
@@ -125,14 +127,18 @@ def create_app(use_old_model=False):
     @app.route("/regist", methods=["GET", "POST"])
     @login_required
     def regist():
+        # 現在ログインしているユーザーID
+        userid = current_user.id
         if request.method == "POST":
             # 画面からの登録情報の取得
             title = request.form.get("title")
             body = request.form.get("body")
 
             db.session.execute(
-                text("INSERT INTO memo (title, body) VALUES (:title, :body)"),
-                {"title": title, "body": body},
+                text(
+                    "INSERT INTO memo (title, body,createduser) VALUES (:title, :body,:createduser)"
+                ),
+                {"title": title, "body": body,"createduser":userid},
             )
             db.session.commit()
             return redirect("/")
@@ -148,7 +154,8 @@ def create_app(use_old_model=False):
 
             db.session.execute(
                 text(
-                    "UPDATE memo " "SET title = :title, body = :body " "WHERE id = :id"
+                    "UPDATE memo "
+                    "SET title = :title, body = :body " "WHERE id = :id"
                 ),
                 {"title": title, "body": body, "id": id},
             )
