@@ -116,9 +116,14 @@ def create_app():
     @app.route("/")
     @login_required
     def top():
+        # 現在ログインしているユーザーIDとunumを取得
+        userid = current_user.id
+        unum = db.session.execute(text("SELECT unum FROM user WHERE userid = :userid")
+                                  ,{"userid":userid}).scalar_one_or_none()
+
         memo_list = (
             db.session.execute(text("SELECT id, title, body FROM memo "
-                                    "where createduser=:userid"),{"userid":current_user.id})
+                                    "where createduser=:userid"),{"userid":unum})
             .mappings()
             .all()
         )
@@ -127,8 +132,10 @@ def create_app():
     @app.route("/regist", methods=["GET", "POST"])
     @login_required
     def regist():
-        # 現在ログインしているユーザーID
+        # 現在ログインしているユーザーIDとunumを取得
         userid = current_user.id
+        unum = db.session.execute(text("SELECT unum FROM user WHERE userid = :userid")
+                                  ,{"userid":userid}).scalar_one_or_none()
         if request.method == "POST":
             # 画面からの登録情報の取得
             title = request.form.get("title")
@@ -138,7 +145,7 @@ def create_app():
                 text(
                     "INSERT INTO memo (title, body,createduser) VALUES (:title, :body,:createduser)"
                 ),
-                {"title": title, "body": body,"createduser":userid},
+                {"title": title, "body": body,"createduser":unum},
             )
             db.session.commit()
             return redirect("/")
