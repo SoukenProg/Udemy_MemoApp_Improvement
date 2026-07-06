@@ -4,8 +4,12 @@
 <a href="/regist" role="button" class="btn btn-success">新規登録</a>
 
 <a href="/logout" role="button" class="btn btn-secondary">ログアウト</a>
+<form method="GET" action="/">
+    <input type="text" name="keyword" placeholder="キーワード検索">
+    <input type="submit" value="検索" class="btn btn-primary">
+</form>
 {% if memo_list == [] %}
-<p>メモは登録されていません。</p>
+<p>条件を満たすメモはありません。</p>
 {% else %}
 <table class="table table-striped-columns">
     <tr>
@@ -20,8 +24,8 @@
     <tr>
         <td>{{memo.title}}</td>
         <td>{{ memo.body }}</td>
-        <td>{{memo.created_at.strftime('%Y-%m-%d %H:%M:%S')}}</td>
-        <td>{{memo.updated_at.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+        <td>{{memo.created_at[:19]}}</td>
+        <td>{{memo.updated_at[:19]}}</td>
         <td>
             <a href="/{{ memo.id }}/edit" role="button" class="btn btn-primary">編集</a>
 

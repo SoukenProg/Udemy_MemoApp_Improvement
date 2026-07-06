@@ -117,12 +117,26 @@ def create_app():
     @login_required
     def top():
         userid = current_user.id
+        # ログイン中のunum取得
         unum = db.session.execute(
             text("SELECT unum FROM user WHERE userid = :userid"),
             {"userid": userid}
         ).scalar_one_or_none()
 
-        memo_list = memo.query.filter_by(createduser=unum).all()
+        keyword = request.args.get("keyword", "")
+
+        memo_list = (
+            db.session.execute(
+                text(
+                    "SELECT id, title, body, created_at, updated_at  FROM memo "
+                    "WHERE createduser = :userid "
+                    "AND (title LIKE :keyword OR body LIKE :keyword)"
+                ),
+                {"userid": unum, "keyword": f"%{keyword}%"},
+            )
+            .mappings()
+            .all()
+        )
 
         return render_template("index.html", memo_list=memo_list)
 
@@ -175,7 +189,6 @@ def create_app():
             return redirect("/")
 
         return render_template("edit.html", post=post)  
-
 
     @app.route("/<int:id>/delete", methods=["GET", "POST"])
     @login_required
