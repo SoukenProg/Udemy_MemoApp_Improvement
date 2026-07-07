@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, render_template, request, redirect
+from flask import Flask, flash, render_template, request, redirect
 from flask_login import (
     UserMixin,
     LoginManager,
@@ -56,6 +56,7 @@ def create_app():
     @app.route("/logout", methods=["GET"])
     def logout():
         logout_user()
+        flash("ログアウトしました。","secondary")
         return redirect("/")
 
     # ユーザー登録
@@ -83,11 +84,12 @@ def create_app():
                     {"userid": userid, "password": pass_hash},
                 )
                 db.session.commit()
+                flash("ユーザー登録に成功しました","success")
                 return redirect("/login")
 
             error_message = "入力されたユーザーIDはすでに利用されています"
-
-        return render_template("signup.html", error_message=error_message)
+            flash(error_message,"danger")
+        return render_template("signup.html")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -107,12 +109,12 @@ def create_app():
             if pass_hash is not None and check_password_hash(pass_hash, password):
                 user = User(userid)
                 login_user(user)
+                flash("ログインに成功しました", "success")
                 return redirect("/")
 
             error_message = "入力されたIDもしくはパスワードは誤っています"
-
-        return render_template("login.html", userid=userid, error_message=error_message)
-
+            flash(error_message, "danger")
+        return render_template("login.html", userid=userid)
     @app.route("/")
     @login_required
     def top():
@@ -162,7 +164,7 @@ def create_app():
 
             db.session.add(new_memo)
             db.session.commit()
-
+            flash("メモの登録に成功しました。","success")
             return redirect("/")
 
         return render_template("regist.html")
@@ -186,6 +188,7 @@ def create_app():
             post.body = request.form.get("body")
 
             db.session.commit()
+            flash("メモの編集に成功しました。", "primary")
             return redirect("/")
 
         return render_template("edit.html", post=post)  
@@ -206,6 +209,7 @@ def create_app():
         if request.method == "POST":
             db.session.delete(post)
             db.session.commit()
+            flash("メモの削除に成功しました。", "secondary")
             return redirect("/")
 
         return render_template("delete.html", post=post)
