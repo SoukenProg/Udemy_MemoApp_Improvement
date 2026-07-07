@@ -16,6 +16,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from models import db, memo,user
 
 DATABASE = "flaskmemo.db"
+# カテゴリー機能の初期値
+DEFAULT_CATEGORIES = ["未分類", "学習", "仕事", "アイデア", "その他"]
 login_manager = LoginManager()
 
 
@@ -83,6 +85,25 @@ def create_app():
                     ),
                     {"userid": userid, "password": pass_hash},
                 )
+                
+                # 登録したユーザーのunumを取得
+                new_unum = db.session.execute(
+                    text("SELECT unum FROM user WHERE userid = :userid"),
+                    {"userid": userid}
+                ).scalar_one()
+
+                # 初期カテゴリを登録
+                for category_name in DEFAULT_CATEGORIES:
+                    db.session.execute(
+                        text(
+                            "INSERT INTO category (name, createduser) "
+                            "VALUES (:name, :createduser)"
+                        ),
+                        {
+                            "name": category_name,
+                            "createduser": new_unum
+                        }
+                    )
                 db.session.commit()
                 flash("ユーザー登録に成功しました","success")
                 return redirect("/login")
