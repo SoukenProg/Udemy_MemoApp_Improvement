@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>カテゴリの編集</h1>
+<form method="POST">
+    <table class="table table-striped-columns">
+        <tr>
+            <th>カテゴリ</th>
+            <th colspan="2">操作</th>
+        </tr>
+        {% for category in category_list %}
+        <tr>
+            <td>
+                <input type="text" class="form-control" name="title" value="{{ category.name }}">
+            </td>
+            <td>
+                <a href="/{{ category.id }}/edit" role="button" class="btn btn-primary">編集</a>
+
+            <td>
+                <a href="/{{ category.id }}/delete" role="button" class="btn btn-danger">削除</a>
+            </td>
+        </tr>
+        {%endfor%}
+    </table>
+    <a href="/add_category" role="button"  class="btn btn-success">追加</a>
+</form>
+<a href="/" role="button" class="btn btn-secondary">一覧に戻る</a>
+{% endblock %}

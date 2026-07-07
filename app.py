@@ -13,7 +13,7 @@ from flask_login import (
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from models import db, memo,user
+from models import db, memo,user,category
 
 DATABASE = "flaskmemo.db"
 # カテゴリー機能の初期値
@@ -85,7 +85,7 @@ def create_app():
                     ),
                     {"userid": userid, "password": pass_hash},
                 )
-                
+
                 # 登録したユーザーのunumを取得
                 new_unum = db.session.execute(
                     text("SELECT unum FROM user WHERE userid = :userid"),
@@ -213,6 +213,22 @@ def create_app():
             return redirect("/")
 
         return render_template("edit.html", post=post)  
+
+    @app.route("/view_category", methods=["GET", "POST"])
+    @login_required
+    def edit_category():
+        userid = current_user.id
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"),
+            {"userid": userid}
+        ).scalar_one_or_none()
+
+        category_list = category.query.filter_by(createduser=unum).all()
+
+        if category_list is None:
+            return redirect("/")
+
+        return render_template("view_category.html",category_list=category_list)
 
     @app.route("/<int:id>/delete", methods=["GET", "POST"])
     @login_required
