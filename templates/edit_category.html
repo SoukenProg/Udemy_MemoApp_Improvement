@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>カテゴリの編集</h1>
+<form method="POST">
+    <p>カテゴリを編集してください。</p>
+    <table class="table table-striped-columns">
+        <tr>
+            <th>カテゴリ</th>
+            <th>操作</th>
+        </tr>
+        <tr>
+            <td>
+                <input type="text" class="form-control" name="category" value="{{ category.name }}">
+            </td>
+            <td>
+                <input type="submit" role="button" class="btn btn-primary" value="編集">
+        </tr>
+    </table>
+</form>
+<a href="{{ url_for('view_category') }}" role="button" class="btn btn-secondary">カテゴリ一覧に戻る</a>
+{% endblock %}

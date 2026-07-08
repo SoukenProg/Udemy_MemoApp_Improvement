@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>削除</h1>
+<p>以下のカテゴリを削除しますか？</p>
+
+<form method="POST">
+    <table class="table table-striped-columns">
+        <tr>
+            <th>削除するカテゴリ名</th>
+        </tr>
+        <tr>
+            <td>
+                <input type="text" class="form-control" name="category" value="{{category.name}}" disabled>
+            </td>
+        </tr>
+    </table>
+    <input type="submit" value="カテゴリの削除" class="btn btn-danger">
+</form>
+<a href="{{ url_for('view_category') }}" role="button" class="btn btn-secondary">カテゴリ一覧に戻る</a>
+{% endblock %}
