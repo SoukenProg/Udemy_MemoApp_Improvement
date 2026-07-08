@@ -189,7 +189,7 @@ def create_app():
             db.session.add(new_category)
             db.session.commit()
             flash("カテゴリの登録に成功しました。", "success")
-            return redirect(url_for("top"))
+            return redirect(url_for("view_category"))
 
         return render_template("add_category.html", category_list=category_list)
 
@@ -217,9 +217,9 @@ def create_app():
 
             db.session.add(new_memo)
             db.session.commit()
-            flash("カテゴリの登録に成功しました。", "success")
-            return redirect(url_for("view_category"))
-
+            flash("メモの登録に成功しました。", "success")
+            return redirect(url_for("top"))
+        
         return render_template("regist.html", category_list=category_list)
 
     @app.route("/<int:id>/edit", methods=["GET", "POST"])
@@ -312,6 +312,26 @@ def create_app():
 
         return render_template("delete.html", post=post)
 
+    @app.route("/category/<int:cid>/delete", methods=["GET", "POST"])
+    @login_required
+    def delete_category(cid):
+        userid = current_user.id
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
+        ).scalar_one_or_none()
+
+        delete_category = category.query.filter_by(id=cid, createduser=unum).first()
+
+        if delete_category is None:
+            return redirect(url_for("view_category"))
+
+        if request.method == "POST":
+            db.session.delete(delete_category)
+            db.session.commit()
+            flash("カテゴリの削除に成功しました。", "secondary")
+            return redirect(url_for("view_category"))
+
+        return render_template("delete_category.html",category=delete_category)
     return app
 
 
