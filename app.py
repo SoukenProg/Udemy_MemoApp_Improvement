@@ -214,9 +214,9 @@ def create_app():
 
         return render_template("edit.html", post=post)  
 
-    @app.route("/view_category", methods=["GET", "POST"])
+    @app.route("/category", methods=["GET", "POST"])
     @login_required
-    def edit_category():
+    def view_category():
         userid = current_user.id
         unum = db.session.execute(
             text("SELECT unum FROM user WHERE userid = :userid"),
@@ -229,6 +229,29 @@ def create_app():
             return redirect("/")
 
         return render_template("view_category.html",category_list=category_list)
+
+    @app.route("/category/<int:cid>/edit", methods=["GET", "POST"])
+    @login_required
+    def edit_category(cid):
+        userid = current_user.id
+        unum = db.session.execute(
+            text("SELECT unum FROM user WHERE userid = :userid"),
+            {"userid": userid}
+        ).scalar_one_or_none()
+
+        now_category = category.query.filter_by(id=cid, createduser=unum).first()
+
+        if now_category is None:
+            return redirect("/edit_category.html")
+
+        if request.method == "POST":
+            now_category.name = request.form.get("category")
+
+            db.session.commit()
+            flash("カテゴリの編集に成功しました。", "primary")
+            return redirect("/category")
+
+        return render_template("edit_category.html", category=now_category)  
 
     @app.route("/<int:id>/delete", methods=["GET", "POST"])
     @login_required
