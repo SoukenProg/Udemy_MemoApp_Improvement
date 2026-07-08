@@ -1,11 +1,15 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>メモアプリ</h1>
-<a href="/regist" role="button" class="btn btn-success">新規登録</a>
-
-<a href="/logout" role="button" class="btn btn-secondary">ログアウト</a>
+<a href="{{url_for('regist')}}" role="button" class="btn btn-success">新規登録</a>
+<a href="{{url_for('view_category')}}" role="button" class="btn btn-secondary">カテゴリを見る</a>
+<a href="{{url_for('logout')}}" role="button" class="btn btn-secondary">ログアウト</a>
+<form method="GET" action="{{ url_for('top') }}">
+    <input type="text" class="form-control" name="keyword" placeholder="キーワード検索">
+    <input type="submit" value="検索" class="btn btn-primary">
+</form>
 {% if memo_list == [] %}
-<p>メモは登録されていません。</p>
+<p>条件を満たすメモはありません。</p>
 {% else %}
 <table class="table table-striped-columns">
     <tr>
@@ -13,6 +17,7 @@
         <th>メモ</th>
         <th>作成日</th>
         <th>更新日</th>
+        <th>カテゴリ</th>
         <th colspan="2">操作</th>
 
     </tr>
@@ -20,8 +25,15 @@
     <tr>
         <td>{{memo.title}}</td>
         <td>{{ memo.body }}</td>
-        <td>{{memo.created_at.strftime('%Y-%m-%d %H:%M:%S')}}</td>
-        <td>{{memo.updated_at.strftime('%Y-%m-%d %H:%M:%S')}}</td>
+        <td>{{memo.created_at[:19]}}</td>
+        <td>{{memo.updated_at[:19]}}</td>
+        <td>
+            {% if memo.category_name %}
+            {{ memo.category_name }}
+            {% else %}
+            未分類
+            {% endif %}
+        </td>
         <td>
             <a href="/{{ memo.id }}/edit" role="button" class="btn btn-primary">編集</a>
 

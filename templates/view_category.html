@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<form method="POST">
+    <table class="table table-striped-columns">
+        <tr>
+            <th>カテゴリ</th>
+            <th colspan="2">操作</th>
+        </tr>
+        <!-- 優先度1以外のカテゴリは編集させない -->
+        {% for category in category_list %}
+        <tr>
+            <td>
+                <p>{{category.name}}</p>
+            </td>
+            <td>
+                <a href="/category/{{ category.id }}/edit" role="button" class="btn btn-primary  {% if category.priority != 1%} disabled {% endif %}">編集</a>
+
+            <td>
+                <a href="/category/{{ category.id }}/delete" role="button" class="btn btn-danger  {% if category.priority != 1%} disabled {% endif %}">削除</a>
+            </td>
+        </tr>
+        {%endfor%}
+    </table>
+    <a href="{{ url_for('add_category')}}" role="button" class="btn btn-success">追加</a>
+</form>
+<a href="{{ url_for('top') }}" role="button" class="btn btn-secondary">一覧に戻る</a>
+{% endblock %}
