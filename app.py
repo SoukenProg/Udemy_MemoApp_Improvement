@@ -128,7 +128,7 @@ def create_app():
                 user = User(userid)
                 login_user(user)
                 flash("ログインに成功しました", "success")
-                return redirect("{{ url_for('top') }}")
+                return redirect("/")
 
             error_message = "入力されたIDもしくはパスワードは誤っています"
             flash(error_message, "danger")
@@ -208,19 +208,21 @@ def create_app():
         ).scalar_one_or_none()
 
         post = memo.query.filter_by(id=id, createduser=unum).first()
-
+        category_list = category.query.filter_by(createduser=unum).all()
+        # 選択中のカテゴリー
+        selected_category = post.category_id
         if post is None:
-            return redirect("{{ url_for('top') }}")
+            return redirect("/")
 
         if request.method == "POST":
             post.title = request.form.get("title")
             post.body = request.form.get("body")
-
+            post.category_id = int(request.form.get("category_id"))
             db.session.commit()
             flash("メモの編集に成功しました。", "primary")
-            return redirect("{{ url_for('top') }}")
+            return redirect("/")
 
-        return render_template("edit.html", post=post)
+        return render_template("edit.html", post=post,category_list=category_list,selected_category=selected_category)
 
     @app.route("/category", methods=["GET", "POST"])
     @login_required
@@ -233,7 +235,7 @@ def create_app():
         category_list = category.query.filter_by(createduser=unum).all()
 
         if category_list is None:
-            return redirect("{{ url_for('top') }}")
+            return redirect("/")
 
         return render_template("view_category.html", category_list=category_list)
 

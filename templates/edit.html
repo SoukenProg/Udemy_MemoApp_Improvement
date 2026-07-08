@@ -6,13 +6,23 @@
         <tr>
             <th>タイトル</th>
             <th>メモ</th>
+            <th>カテゴリ</th>
         </tr>
         <tr>
             <td>
                 <input type="text" class="form-control" name="title" value="{{ post.title }}">
             </td>
             <td>
-                <input type="text" class="form-control" name="body" value="{{ post.body }}">
+                <textarea class="form-control" id="body" name="body" rows="10">{{post.body}}</textarea>
+            </td>
+            <td>
+                <select class="form-select" name="category_id" id="category_id">
+                    {%for category in category_list%}
+                    <option value="{{ category.id }}" {% if selected_category==category.id %}selected{% endif %}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
             </td>
         </tr>
     </table>

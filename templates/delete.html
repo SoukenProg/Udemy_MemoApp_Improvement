@@ -13,7 +13,8 @@
                 <input type="text" class="form-control" name="title" value="{{ post.title }}" disabled>
             </td>
             <td>
-                <input type="text" class="form-control" name="body" value="{{ post.body }}" disabled>
+                <!-- <input type="text" class="form-control" name="body" value="{{ post.body }}" disabled> -->
+                <textarea class="form-control" id="body" name="body" rows="10" disabled>{{post.body}}</textarea>
             </td>
         </tr>
     </table>
