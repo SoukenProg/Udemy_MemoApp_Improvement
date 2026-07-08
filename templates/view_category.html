@@ -20,7 +20,7 @@
         </tr>
         {%endfor%}
     </table>
-    <a href="/add_category" role="button"  class="btn btn-success">追加</a>
+    <a href="/add_category" role="button" class="btn btn-success">追加</a>
 </form>
-<a href="/" role="button" class="btn btn-secondary">一覧に戻る</a>
+<a href="{{ url_for('top') }}" role="button" class="btn btn-secondary">一覧に戻る</a>
 {% endblock %}

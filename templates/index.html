@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 <h1>メモアプリ</h1>
-<a href="/regist" role="button" class="btn btn-success">新規登録</a>
-<a href="/category" role="button" class="btn btn-secondary">カテゴリを見る</a>
-<a href="/logout" role="button" class="btn btn-secondary">ログアウト</a>
-<form method="GET" action="/">
+<a href="{{url_for('regist')}}" role="button" class="btn btn-success">新規登録</a>
+<a href="{{url_for('view_category')}}" role="button" class="btn btn-secondary">カテゴリを見る</a>
+<a href="{{url_for('logout')}}" role="button" class="btn btn-secondary">ログアウト</a>
+<form method="GET" action="{{ url_for('top') }}">
     <input type="text" class="form-control" name="keyword" placeholder="キーワード検索">
     <input type="submit" value="検索" class="btn btn-primary">
 </form>
@@ -29,9 +29,9 @@
         <td>{{memo.updated_at[:19]}}</td>
         <td>
             {% if memo.category %}
-                {{ memo.category.name }}
+            {{ memo.category.name }}
             {% else %}
-                未分類
+            未分類
             {% endif %}
         </td>
         <td>
