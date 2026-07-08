@@ -33,4 +33,5 @@ class category(db.Model):
     __tablename__ = "category"
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.Text, nullable=False)
+    priority = db.Column(db.Integer,nullable=False,default=1)
     createduser = db.Column(db.Integer, db.ForeignKey("user.unum"), nullable=False)
