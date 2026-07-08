@@ -13,7 +13,7 @@ from flask_login import (
 from sqlalchemy import text
 from werkzeug.security import generate_password_hash, check_password_hash
 
-from models import db, memo,user,category
+from models import db, memo, user, category
 
 DATABASE = "flaskmemo.db"
 # カテゴリー機能の初期値
@@ -58,7 +58,7 @@ def create_app():
     @app.route("/logout", methods=["GET"])
     def logout():
         logout_user()
-        flash("ログアウトしました。","secondary")
+        flash("ログアウトしました。", "secondary")
         return redirect("/")
 
     # ユーザー登録
@@ -89,7 +89,7 @@ def create_app():
                 # 登録したユーザーのunumを取得
                 new_unum = db.session.execute(
                     text("SELECT unum FROM user WHERE userid = :userid"),
-                    {"userid": userid}
+                    {"userid": userid},
                 ).scalar_one()
 
                 # 初期カテゴリを登録
@@ -99,17 +99,14 @@ def create_app():
                             "INSERT INTO category (name, createduser) "
                             "VALUES (:name, :createduser)"
                         ),
-                        {
-                            "name": category_name,
-                            "createduser": new_unum
-                        }
+                        {"name": category_name, "createduser": new_unum},
                     )
                 db.session.commit()
-                flash("ユーザー登録に成功しました","success")
+                flash("ユーザー登録に成功しました", "success")
                 return redirect("/login")
 
             error_message = "入力されたユーザーIDはすでに利用されています"
-            flash(error_message,"danger")
+            flash(error_message, "danger")
         return render_template("signup.html")
 
     @app.route("/login", methods=["GET", "POST"])
@@ -131,34 +128,43 @@ def create_app():
                 user = User(userid)
                 login_user(user)
                 flash("ログインに成功しました", "success")
-                return redirect("/")
+                return redirect("{{ url_for('top') }}")
 
             error_message = "入力されたIDもしくはパスワードは誤っています"
             flash(error_message, "danger")
         return render_template("login.html", userid=userid)
+
     @app.route("/")
     @login_required
     def top():
         userid = current_user.id
         # ログイン中のunum取得
         unum = db.session.execute(
-            text("SELECT unum FROM user WHERE userid = :userid"),
-            {"userid": userid}
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
         ).scalar_one_or_none()
 
         keyword = request.args.get("keyword", "")
 
-        memo_list = (
-            db.session.execute(
-                text(
-                    "SELECT id, title, body, created_at, updated_at  FROM memo "
-                    "WHERE createduser = :userid "
-                    "AND (title LIKE :keyword OR body LIKE :keyword)"
-                ),
-                {"userid": unum, "keyword": f"%{keyword}%"},
-            )
-            .mappings()
-            .all()
+        memo_list =(
+        db.session.execute(
+            text(
+                "SELECT "
+                "memo.id, "
+                "memo.title, "
+                "memo.body, "
+                "memo.created_at, "
+                "memo.updated_at, "
+                "memo.category_id, "
+                "category.name AS category_name "
+                "FROM memo "
+                "LEFT JOIN category ON memo.category_id = category.id "
+                "WHERE memo.createduser = :userid "
+                "AND (memo.title LIKE :keyword OR memo.body LIKE :keyword)"
+            ),
+            {"userid": unum, "keyword": f"%{keyword}%"},
+        )
+        .mappings()
+        .all()
         )
 
         return render_template("index.html", memo_list=memo_list)
@@ -169,40 +175,42 @@ def create_app():
         # 現在ログインしているユーザーIDとunumを取得
         userid = current_user.id
         unum = db.session.execute(
-            text("SELECT unum FROM user WHERE userid = :userid"),
-            {"userid": userid}
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
         ).scalar_one_or_none()
+        # 現在ログインしているユーザーのカテゴリを取得
+        category_list = category.query.filter_by(createduser=unum).all()
 
         if request.method == "POST":
             title = request.form.get("title")
             body = request.form.get("body")
+            category_id = int(request.form.get("category_id"))
 
             new_memo = memo(
                 title=title,
                 body=body,
-                createduser=unum
+                createduser=unum,
+                category_id=category_id
             )
 
             db.session.add(new_memo)
             db.session.commit()
-            flash("メモの登録に成功しました。","success")
+            flash("メモの登録に成功しました。", "success")
             return redirect("/")
 
-        return render_template("regist.html")
+        return render_template("regist.html", category_list=category_list)
 
     @app.route("/<int:id>/edit", methods=["GET", "POST"])
     @login_required
     def edit(id):
         userid = current_user.id
         unum = db.session.execute(
-            text("SELECT unum FROM user WHERE userid = :userid"),
-            {"userid": userid}
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
         ).scalar_one_or_none()
 
         post = memo.query.filter_by(id=id, createduser=unum).first()
 
         if post is None:
-            return redirect("/")
+            return redirect("{{ url_for('top') }}")
 
         if request.method == "POST":
             post.title = request.form.get("title")
@@ -210,33 +218,31 @@ def create_app():
 
             db.session.commit()
             flash("メモの編集に成功しました。", "primary")
-            return redirect("/")
+            return redirect("{{ url_for('top') }}")
 
-        return render_template("edit.html", post=post)  
+        return render_template("edit.html", post=post)
 
     @app.route("/category", methods=["GET", "POST"])
     @login_required
     def view_category():
         userid = current_user.id
         unum = db.session.execute(
-            text("SELECT unum FROM user WHERE userid = :userid"),
-            {"userid": userid}
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
         ).scalar_one_or_none()
 
         category_list = category.query.filter_by(createduser=unum).all()
 
         if category_list is None:
-            return redirect("/")
+            return redirect("{{ url_for('top') }}")
 
-        return render_template("view_category.html",category_list=category_list)
+        return render_template("view_category.html", category_list=category_list)
 
     @app.route("/category/<int:cid>/edit", methods=["GET", "POST"])
     @login_required
     def edit_category(cid):
         userid = current_user.id
         unum = db.session.execute(
-            text("SELECT unum FROM user WHERE userid = :userid"),
-            {"userid": userid}
+            text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
         ).scalar_one_or_none()
 
         now_category = category.query.filter_by(id=cid, createduser=unum).first()
@@ -251,7 +257,7 @@ def create_app():
             flash("カテゴリの編集に成功しました。", "primary")
             return redirect("/category")
 
-        return render_template("edit_category.html", category=now_category)  
+        return render_template("edit_category.html", category=now_category)
 
     @app.route("/<int:id>/delete", methods=["GET", "POST"])
     @login_required

@@ -6,6 +6,7 @@
         <tr>
             <th>タイトル</th>
             <th>メモ</th>
+            <th>カテゴリ</th>
         </tr>
         <tr>
             <td>
@@ -13,6 +14,13 @@
             </td>
             <td>
                 <input type="text" class="form-control" name="body">
+            </td>
+            <td>
+                <select class="form-select" name="category_id" id="category_id">
+                    {%for category in category_list%}
+                        <option value="{{ category.id }}">{{ category.name }}</option>
+                    {%endfor%}
+                </select>
             </td>
         </tr>
     </table>

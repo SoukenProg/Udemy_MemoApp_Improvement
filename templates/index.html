@@ -28,8 +28,8 @@
         <td>{{memo.created_at[:19]}}</td>
         <td>{{memo.updated_at[:19]}}</td>
         <td>
-            {% if memo.category %}
-            {{ memo.category.name }}
+            {% if memo.category_name %}
+            {{ memo.category_name }}
             {% else %}
             未分類
             {% endif %}
