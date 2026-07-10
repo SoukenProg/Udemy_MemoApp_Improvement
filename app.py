@@ -181,7 +181,10 @@ def create_app():
         category_list = category.query.filter_by(createduser=unum).order_by(category.priority).all()
 
         if request.method == "POST":
-            new_category = request.form.get("category")
+            new_category = request.form.get("category","").strip()
+            if not new_category:
+                flash("追加するカテゴリを入力してください。", "danger")
+                return render_template("add_category.html", category_list=category_list)
             new_category = category(
                 name=new_category, createduser=unum
             )
@@ -207,9 +210,22 @@ def create_app():
         )
 
         if request.method == "POST":
-            title = request.form.get("title")
-            body = request.form.get("body")
-            category_id = int(request.form.get("category_id"))
+            # 内容があるかチェック
+            title = request.form.get("title", "").strip()
+            body = request.form.get("body", "").strip()
+            category_id = request.form.get("category_id")
+
+            if not title:
+                flash("タイトルを入力してください。", "danger")
+                return render_template("regist.html", category_list=category_list)
+
+            if not body:
+                flash("本文を入力してください。", "danger")
+                return render_template("regist.html", category_list=category_list)
+
+            if category_id is None:
+                flash("カテゴリを選択してください。", "danger")
+                return render_template("regist.html", category_list=category_list)
 
             new_memo = memo(
                 title=title, body=body, createduser=unum, category_id=category_id
@@ -219,7 +235,7 @@ def create_app():
             db.session.commit()
             flash("メモの登録に成功しました。", "success")
             return redirect(url_for("top"))
-        
+
         return render_template("regist.html", category_list=category_list)
 
     @app.route("/<int:id>/edit", methods=["GET", "POST"])
@@ -231,19 +247,72 @@ def create_app():
         ).scalar_one_or_none()
 
         post = memo.query.filter_by(id=id, createduser=unum).first()
-        category_list = category.query.filter_by(createduser=unum).all()
-        # 選択中のカテゴリー
-        selected_category = post.category_id
+
         if post is None:
+            flash("指定されたメモは存在しません。", "danger")
             return redirect(url_for("top"))
 
+        category_list = (
+            category.query
+            .filter_by(createduser=unum)
+            .order_by(category.priority, category.id)
+            .all()
+            )
+        # 選択中のカテゴリー
+        selected_category = post.category_id
         if request.method == "POST":
-            post.title = request.form.get("title")
-            post.body = request.form.get("body")
-            post.category_id = int(request.form.get("category_id"))
+            # 内容があるかチェック
+            title = request.form.get("title", "").strip()
+            body = request.form.get("body", "").strip()
+            category_id = request.form.get("category_id")
+
+            if not title:
+                flash("タイトルを入力してください。", "danger")
+                return render_template(
+                    "edit.html",
+                    post=post,
+                    category_list=category_list
+                )
+
+            if not body:
+                flash("本文を入力してください。", "danger")
+                return render_template(
+                    "edit.html",
+                    post=post,
+                    category_list=category_list
+                )
+
+            if category_id is None:
+                flash("カテゴリを選択してください。", "danger")
+                return render_template(
+                    "edit.html",
+                    post=post,
+                    category_list=category_list
+                )
+
+            # POSTで送信されたカテゴリが、
+            # 現在のログインユーザーのカテゴリか確認する
+            selected_category = category.query.filter_by(
+                id=category_id,
+                createduser=unum
+            ).first()
+
+            if selected_category is None:
+                flash("選択されたカテゴリは使用できません。", "danger")
+                return render_template(
+                    "edit.html",
+                    post=post,
+                    category_list=category_list
+                )
+
+            post.title = title
+            post.body = body
+            post.category_id = selected_category.id
+
             db.session.commit()
+
             flash("メモの編集に成功しました。", "primary")
-            return redirect(url_for("top"))
+            return redirect(url_for("top")) 
 
         return render_template(
             "edit.html",
