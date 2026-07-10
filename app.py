@@ -349,7 +349,8 @@ def create_app():
         edit_target = category.query.filter_by(id=cid, createduser=unum).first()
 
         if edit_target is None:
-            return redirect("/edit_category.html")
+            flash("編集対象のカテゴリが存在しません。","danger")
+            return redirect(url_for("view_category"))
 
         # 「未分類」「その他」カテゴリを取得
         uncategorized = category.query.filter_by(
