@@ -346,19 +346,31 @@ def create_app():
             text("SELECT unum FROM user WHERE userid = :userid"), {"userid": userid}
         ).scalar_one_or_none()
 
-        now_category = category.query.filter_by(id=cid, createduser=unum).first()
+        edit_target = category.query.filter_by(id=cid, createduser=unum).first()
 
-        if now_category is None:
+        if edit_target is None:
             return redirect("/edit_category.html")
 
+        # 「未分類」「その他」カテゴリを取得
+        uncategorized = category.query.filter_by(
+            name="未分類", createduser=unum
+        ).first()
+        other_category = category.query.filter_by(
+            name="その他", createduser=unum
+        ).first()
+
+        if edit_target.id in [uncategorized.id, other_category.id]:
+            flash("このカテゴリは編集できません。", "danger")
+            return render_template("edit_category.html", category=edit_target)
+
         if request.method == "POST":
-            now_category.name = request.form.get("category")
+            edit_target.name = request.form.get("category")
 
             db.session.commit()
             flash("カテゴリの編集に成功しました。", "primary")
             return redirect("/category")
 
-        return render_template("edit_category.html", category=now_category)
+        return render_template("edit_category.html", category=edit_target)
 
     @app.route("/<int:id>/delete", methods=["GET", "POST"])
     @login_required
