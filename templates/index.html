@@ -81,5 +81,46 @@
     </tr>
     {% endfor %}
 </table>
+{% set start_page = [1, page - 2] | max %}
+{% set end_page = [total_pages, page + 2] | min %}
+
+<ul class="pagination justify-content-center">
+    <li class="page-item">
+        <a class="page-link" href="{{ url_for(
+               'top',
+               page=0,
+               keyword=keyword,
+               category_id=selected_category_id,
+               sort_id=select_sort_id
+           ) }}">
+            最初へ
+        </a>
+    </li>
+
+{% for page_num in range(start_page, end_page + 1) %}
+<li class="page-item {% if page_num == page %}active{% endif %}">
+    <a class="page-link" href="{{ url_for(
+           'top',
+           page=page_num,
+           keyword=keyword,
+           category_id=selected_category_id,
+           sort_id=select_sort_id
+       ) }}">
+        {{ page_num }}
+    </a>
+</li>
+{% endfor %}
+    <li class="page-item">
+        <a class="page-link" href="{{ url_for(
+                   'top',
+                   page=total_pages,
+                   keyword=keyword,
+                   category_id=selected_category_id,
+                   sort_id=select_sort_id
+               ) }}">
+            最後へ
+        </a>
+    </li>
+</ul>
 {% endif %}
 {% endblock %}
