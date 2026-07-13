@@ -198,7 +198,7 @@ def create_app():
         if sort_id < 0 or sort_id >= len(SORT_PRIORITY):
             flash("不正なソートIDです。", "danger")
             return redirect(url_for("top"))
-        
+
         # ページ番号
         page = request.args.get("page", default=1, type=int)
 
@@ -267,8 +267,6 @@ def create_app():
         params["offset"] = MEMOS_PER_PAGE * (page - 1)
         memo_list = db.session.execute(text(sql), params=params).mappings().all()
 
-        
-
         return render_template(
             "index.html",
             memo_list=memo_list,
@@ -296,16 +294,22 @@ def create_app():
 
         if request.method == "POST":
             new_category = request.form.get("category", "").strip()
+
             if not new_category:
                 flash("追加するカテゴリを入力してください。", "danger")
                 return render_template("add_category.html", category_list=category_list)
-            new_category = category(name=new_category, createduser=unum)
+            category_check = category.query.filter_by(
+                name=new_category, createduser=unum
+            ).first()
+            if category_check is None:
+                new_category = category(name=new_category, createduser=unum)
 
-            db.session.add(new_category)
-            db.session.commit()
-            flash("カテゴリの登録に成功しました。", "success")
-            return redirect(url_for("view_category"))
+                db.session.add(new_category)
+                db.session.commit()
+                flash("カテゴリの登録に成功しました。", "success")
+                return redirect(url_for("view_category"))
 
+            flash("このカテゴリ名はすでに使用されています","danger")
         return render_template("add_category.html", category_list=category_list)
 
     @app.route("/regist", methods=["GET", "POST"])
@@ -339,10 +343,24 @@ def create_app():
                 flash("カテゴリを選択してください。", "danger")
                 return render_template("regist.html", category_list=category_list)
 
-            new_memo = memo(
-                title=title, body=body, createduser=unum, category_id=category_id
-            )
+            selected_category = category.query.filter_by(
+                id=category_id,
+                createduser=unum
+            ).first()
 
+            if selected_category is None:
+                flash("選択されたカテゴリは使用できません。", "danger")
+                return render_template(
+                    "regist.html",
+                    category_list=category_list
+                )
+
+            new_memo = memo(
+                title=title,
+                body=body,
+                createduser=unum,
+                category_id=selected_category.id
+            )
             db.session.add(new_memo)
             db.session.commit()
             flash("メモの登録に成功しました。", "success")
@@ -467,11 +485,38 @@ def create_app():
             return render_template("edit_category.html", category=edit_target)
 
         if request.method == "POST":
-            edit_target.name = request.form.get("category")
+            new_name = request.form.get("category", "").strip()
+    
+            if not new_name:
+                flash("カテゴリ名を入力してください。", "danger")
+                return render_template(
+                    "edit_category.html",
+                    category=edit_target
+                )
+            # 変更先のカテゴリがすでにあるか
+            duplicate_category = (
+                category.query
+                .filter(
+                category.createduser == unum,
+                category.name == new_name,
+                    category.id != edit_target.id
+                )
+                .first()
+            )
+
+            if duplicate_category is not None:
+                flash("このカテゴリ名はすでに使用されています。", "danger")
+                return render_template(
+                    "edit_category.html",
+                    category=edit_target
+                )
+
+            edit_target.name = new_name
 
             db.session.commit()
+
             flash("カテゴリの編集に成功しました。", "primary")
-            return redirect("/category")
+            return redirect(url_for("view_category"))
 
         return render_template("edit_category.html", category=edit_target)
 
@@ -655,7 +700,6 @@ def create_app():
             f"ユーザーID「{userid}」に"
             f"{created_count}件のモックメモを登録しました。"
         )
-
 
     @app.cli.command("delete-mock-memos")
     @click.option(
