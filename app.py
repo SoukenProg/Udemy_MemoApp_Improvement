@@ -24,6 +24,18 @@ DEFAULT_CATEGORIES = [
     ("アイデア", 1),
     ("その他", 2),
 ]
+SORT_PRIORITY = [
+    "更新日時が新しい順",
+    "更新日時が古い順",
+    "作成日時が新しい順",
+    "作成日時が古い順",
+]
+SORT_PRIORITY_SQL = [
+    "ORDER BY memo.updated_at DESC ",
+    "ORDER BY memo.updated_at ASC ",
+    "ORDER BY memo.created_at DESC ",
+    "ORDER BY memo.created_at ASC ",
+]
 login_manager = LoginManager()
 
 
@@ -155,6 +167,7 @@ def create_app():
 
         keyword = request.args.get("keyword", "")
         category_id = request.args.get("category_id", type=int)
+        sort_id = request.args.get("sort_id", default=0, type=int)
 
         # ログインユーザーのカテゴリ一覧
         category_list = (
@@ -162,7 +175,7 @@ def create_app():
             .order_by(category.priority, category.id)
             .all()
         )
-        
+
         # カテゴリが指定されている場合だけ、
         # 現在のログインユーザーのカテゴリか確認する
         if category_id is not None:
@@ -173,6 +186,11 @@ def create_app():
             if selected_category is None:
                 flash("選択されたカテゴリは使用できません。", "danger")
                 return redirect(url_for("top"))
+
+        # ソートIDの不正チェック(Noneなら0に)
+        if sort_id < 0 or sort_id >= len(SORT_PRIORITY):
+            flash("不正なソートIDです。", "danger")
+            return redirect(url_for("top"))
         # 実行するSQLとパラメータ
         sql = (
             "SELECT "
@@ -194,8 +212,8 @@ def create_app():
             sql += "AND memo.category_id = :category_id "
             params["category_id"] = category_id
 
-        # 更新日時の新しい順に表示
-        sql += "ORDER BY memo.updated_at DESC "
+        # sort_idの指示通りにソート
+        sql += SORT_PRIORITY_SQL[sort_id]
         memo_list = db.session.execute(text(sql), params=params).mappings().all()
 
         return render_template(
@@ -204,6 +222,8 @@ def create_app():
             category_list=category_list,
             keyword=keyword,
             selected_category_id=category_id,
+            sort_priority=SORT_PRIORITY,
+            select_sort_id=sort_id,
         )
 
     @app.route("/category/add", methods=["GET", "POST"])
