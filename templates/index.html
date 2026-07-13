@@ -4,9 +4,47 @@
 <a href="{{url_for('regist')}}" role="button" class="btn btn-success">新規登録</a>
 <a href="{{url_for('view_category')}}" role="button" class="btn btn-secondary">カテゴリを見る</a>
 <a href="{{url_for('logout')}}" role="button" class="btn btn-secondary">ログアウト</a>
-<form method="GET" action="{{ url_for('top') }}">
-    <input type="text" class="form-control" name="keyword" placeholder="キーワード検索">
-    <input type="submit" value="検索" class="btn btn-primary">
+<!-- 検索フォーム -->
+<form method="GET" action="{{ url_for('top') }}" class="row g-3 my-3">
+    <div class="col-md-4">
+        <label for="keyword" class="form-label">キーワード</label>
+
+        <input type="text" class="form-control" id="keyword" name="keyword" value="{{ keyword }}"
+            placeholder="タイトル・本文を検索">
+    </div>
+
+    <div class="col-md-3">
+        <label for="category_id" class="form-label">カテゴリ</label>
+
+        <select class="form-select" id="category_id" name="category_id">
+            <option value="">すべてのカテゴリ</option>
+
+            {% for category in category_list %}
+            <option value="{{ category.id }}" {% if selected_category_id==category.id %} selected {% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label for="category_id" class="form-label">並び替え</label>
+        <select class="form-select" name="sort_id" id="sort_id">
+            {%for priority in sort_priority%}
+            <option value="{{loop.index0}}" {% if select_sort_id==loop.index0 %} selected {%endif%}>
+                {{priority}}
+            </option>
+            {%endfor%}
+        </select>
+    </div>
+    <div class="col-md-2 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary">
+            検索
+        </button>
+
+        <a href="{{ url_for('top') }}" class="btn btn-secondary">
+            クリア
+        </a>
+    </div>
 </form>
 {% if memo_list == [] %}
 <p>条件を満たすメモはありません。</p>
@@ -43,5 +81,46 @@
     </tr>
     {% endfor %}
 </table>
+{% set start_page = [1, page - 2] | max %}
+{% set end_page = [total_pages, page + 2] | min %}
+
+<ul class="pagination justify-content-center">
+    <li class="page-item">
+        <a class="page-link" href="{{ url_for(
+               'top',
+               page=0,
+               keyword=keyword,
+               category_id=selected_category_id,
+               sort_id=select_sort_id
+           ) }}">
+            最初へ
+        </a>
+    </li>
+
+{% for page_num in range(start_page, end_page + 1) %}
+<li class="page-item {% if page_num == page %}active{% endif %}">
+    <a class="page-link" href="{{ url_for(
+           'top',
+           page=page_num,
+           keyword=keyword,
+           category_id=selected_category_id,
+           sort_id=select_sort_id
+       ) }}">
+        {{ page_num }}
+    </a>
+</li>
+{% endfor %}
+    <li class="page-item">
+        <a class="page-link" href="{{ url_for(
+                   'top',
+                   page=total_pages,
+                   keyword=keyword,
+                   category_id=selected_category_id,
+                   sort_id=select_sort_id
+               ) }}">
+            最後へ
+        </a>
+    </li>
+</ul>
 {% endif %}
 {% endblock %}
