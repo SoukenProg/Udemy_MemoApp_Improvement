@@ -154,30 +154,57 @@ def create_app():
         ).scalar_one_or_none()
 
         keyword = request.args.get("keyword", "")
+        category_id = request.args.get("category_id", type=int)
 
-        memo_list = (
-            db.session.execute(
-                text(
-                    "SELECT "
-                    "memo.id, "
-                    "memo.title, "
-                    "memo.body, "
-                    "memo.created_at, "
-                    "memo.updated_at, "
-                    "memo.category_id, "
-                    "category.name AS category_name "
-                    "FROM memo "
-                    "LEFT JOIN category ON memo.category_id = category.id "
-                    "WHERE memo.createduser = :userid "
-                    "AND (memo.title LIKE :keyword OR memo.body LIKE :keyword)"
-                ),
-                {"userid": unum, "keyword": f"%{keyword}%"},
-            )
-            .mappings()
+        # ログインユーザーのカテゴリ一覧
+        category_list = (
+            category.query.filter_by(createduser=unum)
+            .order_by(category.priority, category.id)
             .all()
         )
+        
+        # カテゴリが指定されている場合だけ、
+        # 現在のログインユーザーのカテゴリか確認する
+        if category_id is not None:
+            selected_category = category.query.filter_by(
+                id=category_id, createduser=unum
+            ).first()
 
-        return render_template("index.html", memo_list=memo_list)
+            if selected_category is None:
+                flash("選択されたカテゴリは使用できません。", "danger")
+                return redirect(url_for("top"))
+        # 実行するSQLとパラメータ
+        sql = (
+            "SELECT "
+            "memo.id, "
+            "memo.title, "
+            "memo.body, "
+            "memo.created_at, "
+            "memo.updated_at, "
+            "memo.category_id, "
+            "category.name AS category_name "
+            "FROM memo "
+            "LEFT JOIN category ON memo.category_id = category.id "
+            "WHERE memo.createduser = :userid "
+            "AND (memo.title LIKE :keyword OR memo.body LIKE :keyword) "
+        )
+        params = {"userid": unum, "keyword": f"%{keyword}%"}
+        # カテゴリが選択されているとき
+        if category_id is not None:
+            sql += "AND memo.category_id = :category_id "
+            params["category_id"] = category_id
+
+        # 更新日時の新しい順に表示
+        sql += "ORDER BY memo.updated_at DESC "
+        memo_list = db.session.execute(text(sql), params=params).mappings().all()
+
+        return render_template(
+            "index.html",
+            memo_list=memo_list,
+            category_list=category_list,
+            keyword=keyword,
+            selected_category_id=category_id,
+        )
 
     @app.route("/category/add", methods=["GET", "POST"])
     @login_required
@@ -349,7 +376,7 @@ def create_app():
         edit_target = category.query.filter_by(id=cid, createduser=unum).first()
 
         if edit_target is None:
-            flash("編集対象のカテゴリが存在しません。","danger")
+            flash("編集対象のカテゴリが存在しません。", "danger")
             return redirect(url_for("view_category"))
 
         # 「未分類」「その他」カテゴリを取得
@@ -418,7 +445,7 @@ def create_app():
             name="その他", createduser=unum
         ).first()
 
-        if delete_target.id in [uncategorized.id , other_category.id]:
+        if delete_target.id in [uncategorized.id, other_category.id]:
             flash("このカテゴリは削除できません。", "danger")
             return redirect(url_for("view_category"))
 

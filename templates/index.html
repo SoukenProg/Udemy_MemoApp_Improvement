@@ -4,9 +4,38 @@
 <a href="{{url_for('regist')}}" role="button" class="btn btn-success">新規登録</a>
 <a href="{{url_for('view_category')}}" role="button" class="btn btn-secondary">カテゴリを見る</a>
 <a href="{{url_for('logout')}}" role="button" class="btn btn-secondary">ログアウト</a>
-<form method="GET" action="{{ url_for('top') }}">
-    <input type="text" class="form-control" name="keyword" placeholder="キーワード検索">
-    <input type="submit" value="検索" class="btn btn-primary">
+<!-- 検索フォーム -->
+<form method="GET" action="{{ url_for('top') }}" class="row g-3 my-3">
+    <div class="col-md-5">
+        <label for="keyword" class="form-label">キーワード</label>
+
+        <input type="text" class="form-control" id="keyword" name="keyword" value="{{ keyword }}"
+            placeholder="タイトル・本文を検索">
+    </div>
+
+    <div class="col-md-4">
+        <label for="category_id" class="form-label">カテゴリ</label>
+
+        <select class="form-select" id="category_id" name="category_id">
+            <option value="">すべてのカテゴリ</option>
+
+            {% for category in category_list %}
+            <option value="{{ category.id }}" {% if selected_category_id==category.id %} selected {% endif %}>
+                {{ category.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="col-md-3 d-flex align-items-end gap-2">
+        <button type="submit" class="btn btn-primary">
+            検索
+        </button>
+
+        <a href="{{ url_for('top') }}" class="btn btn-secondary">
+            クリア
+        </a>
+    </div>
 </form>
 {% if memo_list == [] %}
 <p>条件を満たすメモはありません。</p>
