@@ -485,11 +485,38 @@ def create_app():
             return render_template("edit_category.html", category=edit_target)
 
         if request.method == "POST":
-            edit_target.name = request.form.get("category")
+            new_name = request.form.get("category", "").strip()
+    
+            if not new_name:
+                flash("カテゴリ名を入力してください。", "danger")
+                return render_template(
+                    "edit_category.html",
+                    category=edit_target
+                )
+            # 変更先のカテゴリがすでにあるか
+            duplicate_category = (
+                category.query
+                .filter(
+                category.createduser == unum,
+                category.name == new_name,
+                    category.id != edit_target.id
+                )
+                .first()
+            )
+
+            if duplicate_category is not None:
+                flash("このカテゴリ名はすでに使用されています。", "danger")
+                return render_template(
+                    "edit_category.html",
+                    category=edit_target
+                )
+
+            edit_target.name = new_name
 
             db.session.commit()
+
             flash("カテゴリの編集に成功しました。", "primary")
-            return redirect("/category")
+            return redirect(url_for("view_category"))
 
         return render_template("edit_category.html", category=edit_target)
 
