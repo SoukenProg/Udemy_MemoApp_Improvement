@@ -91,8 +91,13 @@ def create_app():
         error_message = ""
 
         if request.method == "POST":
-            userid = request.form.get("userid")
-            password = request.form.get("password")
+            userid = request.form.get("userid","").strip()
+            password = request.form.get("password", "").strip()
+            # 内容があるかチェック
+            if (not userid) or (not password):
+                flash("ユーザーIDとパスワードを入力してください","danger")
+                return redirect("/login")
+
             pass_hash = generate_password_hash(password)
 
             user_check = db.session.execute(
@@ -486,7 +491,7 @@ def create_app():
 
         if request.method == "POST":
             new_name = request.form.get("category", "").strip()
-    
+
             if not new_name:
                 flash("カテゴリ名を入力してください。", "danger")
                 return render_template(
