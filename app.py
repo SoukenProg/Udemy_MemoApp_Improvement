@@ -121,6 +121,26 @@ def create_app():
                     {"userid": userid},
                 ).scalar_one()
 
+                #前ユーザーの痕跡が残っていたら削除
+                try:
+                    memo.query.filter_by(
+                        createduser=new_unum
+                    ).delete(synchronize_session=False)
+
+                    category.query.filter_by(
+                        createduser=new_unum
+                    ).delete(synchronize_session=False)
+
+                    user_target = user.query.filter_by(unum=new_unum).first()
+
+                    if user_target is not None:
+                        db.session.delete(user_target)
+
+                    db.session.commit()
+
+                except Exception:
+                    db.session.rollback()
+                    raise
                 # 初期カテゴリを登録
                 for category_name, priority in DEFAULT_CATEGORIES:
                     db.session.execute(
