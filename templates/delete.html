@@ -3,21 +3,27 @@
 <h1>削除</h1>
 <p>以下のメモを削除しますか？</p>
 <form method="POST">
-    <table class="table table-striped-columns">
-        <tr>
-            <th>タイトル</th>
-            <th>メモ</th>
-        </tr>
-        <tr>
-            <td>
-                <input type="text" class="form-control" name="title" value="{{ post.title }}" disabled>
-            </td>
-            <td>
-                <!-- <input type="text" class="form-control" name="body" value="{{ post.body }}" disabled> -->
-                <textarea class="form-control" id="body" name="body" rows="10" disabled>{{post.body}}</textarea>
-            </td>
-        </tr>
-    </table>
+    <div class="d-flex flex-column justify-content-center  mb-3">
+        <div class="p-2">
+            <p>タイトル</p>
+        </div>
+        <div class="p-2"><input type="text" class="form-control" name="title" value="{{ post.title }}" disabled></div>
+        <div class="p-2">
+            <p>メモ</p>
+        </div>
+        <div class="p-2"><textarea class="form-control" id="body" name="body" rows="10" disabled>{{post.body}}</textarea>
+        </div>
+        <div class="p-2">
+            <p>カテゴリ</p>
+        </div>
+        <div class="p-2">
+            <select class="form-select" name="category_id" id="category_id" disabled>
+                {%for category in category_list%}
+                <option value="{{ category.id }}">{{ category.name }}</option>
+                {%endfor%}
+            </select>
+        </div>
+    </div>
     <input type="submit" value="削除" class="btn btn-danger">
 </form>
 <a href="{{ url_for('top') }}" role="button" class="btn btn-secondary">一覧に戻る</a>

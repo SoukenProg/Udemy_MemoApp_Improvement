@@ -2,28 +2,27 @@
 {% block content %}
 <h1>新規登録</h1>
 <form method="POST">
-    <table class="table table-striped-columns">
-        <tr>
-            <th>タイトル</th>
-            <th>メモ</th>
-            <th>カテゴリ</th>
-        </tr>
-        <tr>
-            <td>
-                <input type="text" class="form-control" name="title" required>
-            </td>
-            <td>
-                <textarea class="form-control" id="body" name="body" rows="10" required></textarea>
-            </td>
-            <td>
+        <div class="d-flex flex-column justify-content-center  mb-3">
+            <div class="p-2">
+                <p>タイトル<span class="text-danger">*</span></p>
+            </div>
+            <div class="p-2"><input type="text" class="form-control" name="title" required></div>
+            <div class="p-2">
+                <p>メモ<span class="text-danger">*</span></p>
+            </div>
+            <div class="p-2"><textarea class="form-control" id="body" name="body" rows="10" required></textarea>
+            </div>
+            <div class="p-2">
+                <p>カテゴリ</p>
+            </div>
+            <div class="p-2">
                 <select class="form-select" name="category_id" id="category_id">
                     {%for category in category_list%}
-                        <option value="{{ category.id }}">{{ category.name }}</option>
+                    <option value="{{ category.id }}">{{ category.name }}</option>
                     {%endfor%}
                 </select>
-            </td>
-        </tr>
-    </table>
+            </div>
+        </div>
     <input type="submit" value="新規登録" class="btn btn-primary">
 </form>
 <a href="{{ url_for('top') }}" role="button" class="btn btn-secondary">一覧に戻る</a>

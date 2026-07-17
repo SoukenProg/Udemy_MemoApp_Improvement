@@ -121,7 +121,7 @@ def create_app():
                     {"userid": userid},
                 ).scalar_one()
 
-                #前ユーザーの痕跡が残っていたら削除
+                # 前ユーザーの痕跡が残っていたら削除
                 try:
                     memo.query.filter_by(
                         createduser=new_unum
@@ -558,13 +558,19 @@ def create_app():
         if post is None:
             return redirect(url_for("top"))
 
+        category_list = (
+            category.query.filter_by(createduser=unum).order_by(category.priority).all()
+        )
+
+        if category_list is None:
+            return redirect(url_for("top"))
         if request.method == "POST":
             db.session.delete(post)
             db.session.commit()
             flash("メモの削除に成功しました。", "secondary")
             return redirect(url_for("top"))
 
-        return render_template("delete.html", post=post)
+        return render_template("delete.html", post=post,category_list=category_list)
 
     @app.route("/category/<int:cid>/delete", methods=["GET", "POST"])
     @login_required
